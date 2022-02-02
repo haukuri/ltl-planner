@@ -1,9 +1,9 @@
-from ltlplanner import ltl
+from ltlplanner import ltl2ba_wrapper
 
 
 def test_run_ltl2ba():
     formula = '[]<>(a && b) && <> c'
-    output = ltl._run_ltl2ba(formula)
+    output = ltl2ba_wrapper.run_ltl2ba(formula)
     assert output.strip() == """never { /* []<>(a && b) && <> c */
 T0_init:
 	if
