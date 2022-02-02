@@ -4,7 +4,7 @@ from subprocess import check_output
 import networkx as nx
 
 from .promela import parse as parse_promela, find_states
-from .boolean_expressions import parse as parse_boolean_expression
+from .booleans import parse as parse_boolean_expression
 
 def _run_ltl2ba(ltl: str) -> str:
     project_root = Path(__file__).parent.parent
