@@ -1,20 +1,33 @@
-import networkx as nx
+from ltlplanner.booleans.expressions import Expression
 
-from .promela import parse as parse_promela, find_states
+from .promela import PromelaOutput, parse as parse_promela, find_states
 from .booleans.parser import parse as parse_boolean_expression
 from .ltl2ba_wrapper import run_ltl2ba
 
-class BuchiGraph(nx.DiGraph):
-    def __init__(self, initial: set[str], accept: set[str], incoming_graph_data=None, **attr):
-        super().__init__(incoming_graph_data, **attr)
-        self.initial = initial if initial else set()
-        self.accept = accept if accept else set()
+class Buchi:
+    def __init__(self, promela_output: PromelaOutput):
+        self.initial = set(promela_output.initial_states)
+        self.accept = set(promela_output.accept_states)
+        self._guards_from = {}
+        for (src, dst), guard_formula in promela_output.edges.items():
+            try:
+                guards = self._guards_from[src]
+            except KeyError:
+                guards = {}
+                self._guards_from[src] = guards
+            guard = parse_boolean_expression(guard_formula)
+            guards[dst] = guard
+    
+    def guard(self, src, dst) -> Expression:
+        """
+        Returns the guard expression for the edge between src and dst.
+        Throws KeyError if the edge does not exist.
+        """
+        return self._guards_from[src][dst]
 
-def from_ltl(formula: str) -> BuchiGraph:
+
+def from_ltl(formula: str) -> Buchi:
     promela_output = run_ltl2ba(formula)
     promela_output = parse_promela(promela_output)
-    buchi = BuchiGraph(promela_output.initial_states, promela_output.accept_states)
-    for (src, dst), guard_formula in promela_output.edges.items():
-        guard = parse_boolean_expression(guard_formula)
-        buchi.add_edge(src, dst, guard=guard)
+    buchi = Buchi(promela_output)
     return buchi
