@@ -1,7 +1,7 @@
 import networkx as nx
 
 from .promela import parse as parse_promela, find_states
-from .booleans import parse as parse_boolean_expression
+from .booleans.parser import parse as parse_boolean_expression
 from .ltl2ba_wrapper import run_ltl2ba
 
 class BuchiGraph(nx.DiGraph):
@@ -12,10 +12,9 @@ class BuchiGraph(nx.DiGraph):
 
 def from_ltl(formula: str) -> BuchiGraph:
     promela_output = run_ltl2ba(formula)
-    raw_edges = parse_promela(promela_output)
-    (_, initial, accept) = find_states(raw_edges)
-    buchi = BuchiGraph(initial, accept)
-    for (src, dst), guard_formula in raw_edges.items():
+    promela_output = parse_promela(promela_output)
+    buchi = BuchiGraph(promela_output.initial_states, promela_output.accept_states)
+    for (src, dst), guard_formula in promela_output.edges.items():
         guard = parse_boolean_expression(guard_formula)
         buchi.add_edge(src, dst, guard=guard)
     return buchi
