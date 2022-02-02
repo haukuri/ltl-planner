@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import re
 
-class Parser(object):
+class Parser:
     # Expression for the eat_whitespace function
     white_regx  = re.compile(r"\s+")
     # Expressions for the input language
