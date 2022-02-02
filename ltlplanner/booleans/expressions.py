@@ -1,11 +1,14 @@
+import abc
 import itertools
 
 
-class Expression:
+class Expression(abc.ABC):
     name = "Expression"
-
     def __iter__(self):
         raise NotImplementedError()
+    
+    def __eq__(self, o: object) -> bool:
+        return isinstance(o, type(self))
 
     def check(self, label):
         raise NotImplementedError()
@@ -15,7 +18,6 @@ class Expression:
 
     def nnf(self):
         return self
-
 
 class SymbolExpression(Expression):
     def __init__(self, name):
@@ -28,6 +30,9 @@ class SymbolExpression(Expression):
     def __iter__(self):
         for expr in [self]:
             yield expr
+    
+    def __eq__(self, o: object) -> bool:
+        return super().__eq__(o) and self.symbol == o.symbol
 
     def children(self):
         return []
@@ -41,7 +46,6 @@ class SymbolExpression(Expression):
         else:
             return 1
 
-
 class NotSymbolExpression(Expression):
     def __init__(self, name):
         self.name = "!%s" % name
@@ -54,6 +58,9 @@ class NotSymbolExpression(Expression):
         for expr in [self]:
             yield expr
 
+    def __eq__(self, o: object) -> bool:
+        return super().__eq__(o) and self.symbol == o.symbol
+    
     def children(self):
         return []
 
@@ -66,10 +73,8 @@ class NotSymbolExpression(Expression):
         else:
             return 1
 
-
 class TrueExpression(Expression):
     name = "TRUE"
-
     def __init__(self):
         pass
 
@@ -89,10 +94,8 @@ class TrueExpression(Expression):
     def distance(self, label):
         return 0
 
-
 class NotExpression(Expression):
     name = "NOT"
-
     def __init__(self, inner):
         self.inner = inner
 
@@ -125,7 +128,6 @@ class NotExpression(Expression):
             return s
         raise Exception("Unexpected child of NotExpression")
 
-
 class BinExpression(Expression):
     def __init__(self, left, right):
         self.left = left
@@ -134,6 +136,9 @@ class BinExpression(Expression):
     def __iter__(self):
         for expr in itertools.chain([self], self.left, self.right):
             yield expr
+    
+    def __eq__(self, o: object) -> bool:
+        return super().__eq__(o) and self.left == o.left and self.right == o.right
 
     def children(self):
         return [self.left, self.right]
@@ -143,10 +148,8 @@ class BinExpression(Expression):
         self.right = self.right.nnf()
         return self
 
-
 class ORExpression(BinExpression):
     name = "OR"
-
     def __repr__(self):
         return "ORExpression(%s, %s)" % (str(self.left), str(self.right))
 
@@ -158,10 +161,8 @@ class ORExpression(BinExpression):
         rdist = self.right.distance(label)
         return min([ldist, rdist])
 
-
 class ANDExpression(BinExpression):
     name = "AND"
-
     def __repr__(self):
         return "ANDExpression(%s, %s)" % (str(self.left), str(self.right))
 
