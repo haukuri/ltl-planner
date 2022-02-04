@@ -1,29 +1,41 @@
-from ltlplanner.booleans.expressions import Expression
+from collections import defaultdict
 
+from .booleans.expressions import Expression
 from .promela import PromelaOutput, parse as parse_promela, find_states
 from .booleans.parser import parse as parse_boolean_expression
 from .ltl2ba_wrapper import run_ltl2ba
+from .graph import Graph
 
-class Buchi:
+empty_set = frozenset()
+
+
+class Buchi(Graph):
     def __init__(self, promela_output: PromelaOutput):
         self.initial = set(promela_output.initial_states)
         self.accept = set(promela_output.accept_states)
-        self._guards_from = {}
+        guards = {}
+        pre = defaultdict(set)
+        post = defaultdict(set)
         for (src, dst), guard_formula in promela_output.edges.items():
-            try:
-                guards = self._guards_from[src]
-            except KeyError:
-                guards = {}
-                self._guards_from[src] = guards
-            guard = parse_boolean_expression(guard_formula)
-            guards[dst] = guard
-    
+            guards[(src, dst)] = parse_boolean_expression(guard_formula)
+            post[src].add(dst)
+            pre[dst].add(src)
+        self.__guards = guards
+        self.__pre = pre
+        self.__post = post
+
     def guard(self, src, dst) -> Expression:
         """
         Returns the guard expression for the edge between src and dst.
         Throws KeyError if the edge does not exist.
         """
-        return self._guards_from[src][dst]
+        return self.__guards[(src, dst)]
+
+    def post(self, src):
+        return self.__post[src]
+
+    def pre(self, dst):
+        return self.__pre[dst]
 
 
 def from_ltl(formula: str) -> Buchi:
