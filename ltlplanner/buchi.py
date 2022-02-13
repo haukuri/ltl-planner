@@ -5,6 +5,7 @@ from .promela import PromelaOutput, parse as parse_promela, find_states
 from .booleans.parser import parse as parse_boolean_expression
 from .ltl2ba_wrapper import run_ltl2ba
 from .graph import Graph
+from .utils import BidirectionalEdgeMap
 
 empty_set = frozenset()
 
@@ -14,15 +15,12 @@ class Buchi(Graph):
         self.initial = set(promela_output.initial_states)
         self.accept = set(promela_output.accept_states)
         guards = {}
-        pre = defaultdict(set)
-        post = defaultdict(set)
+        edges = BidirectionalEdgeMap()
         for (src, dst), guard_formula in promela_output.edges.items():
             guards[(src, dst)] = parse_boolean_expression(guard_formula)
-            post[src].add(dst)
-            pre[dst].add(src)
+            edges.add(src, dst)
         self.__guards = guards
-        self.__pre = pre
-        self.__post = post
+        self.__edges = edges
 
     def guard(self, src, dst) -> Expression:
         """
@@ -32,10 +30,10 @@ class Buchi(Graph):
         return self.__guards[(src, dst)]
 
     def post(self, src):
-        return self.__post[src]
+        return self.__edges.post(src)
 
     def pre(self, dst):
-        return self.__pre[dst]
+        return self.__edges.pre(dst)
 
 
 def from_ltl(formula: str) -> Buchi:
