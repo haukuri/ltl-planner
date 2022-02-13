@@ -25,3 +25,6 @@ class ConcreteGraph(Graph):
 
     def pre(self, dst):
         return self.__edges.pre(dst)
+
+    def edges(self):
+        return self.__edges.edges()
