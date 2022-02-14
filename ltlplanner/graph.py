@@ -1,19 +1,6 @@
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
 from .utils import BidirectionalEdgeMap
 
-class Graph(ABC):
-    @abstractmethod
-    def post(self, src) -> set[str]:
-        pass
-
-    @abstractmethod
-    def pre(self, dst) -> set[str]:
-        pass
-
-class ConcreteGraph(Graph):
+class Graph:
     def __init__(self):
         self.__edges = BidirectionalEdgeMap()
 

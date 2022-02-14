@@ -1,4 +1,4 @@
-from ltlplanner.buchi import Buchi, from_ltl
+from ltlplanner.buchi import Buchi
 from ltlplanner.promela import parse as parse_promela
 
 sample_promela = """
@@ -25,7 +25,7 @@ accept_S1:
 
 def test_buchi_from_ltl():
     ltl = '[]<>a && []<>b '
-    buchi_graph = from_ltl(ltl)
+    buchi_graph = Buchi.from_ltl(ltl)
     actual_guard = buchi_graph.guard("T0_init", "accept_S1")
     assert actual_guard.check(["a", "b"]) == True
     assert actual_guard.check(["a"]) == False
@@ -33,7 +33,7 @@ def test_buchi_from_ltl():
 
 def test_buchi_from_promela():
     promela_nda = parse_promela(sample_promela)
-    buchi = Buchi(promela_nda)
+    buchi = Buchi.from_promela(promela_nda)
     assert buchi.post('T0_init') == {'T0_init', 'T1_S1', 'accept_S1'}
     assert buchi.pre('T0_init') == {'T0_init', 'accept_S1'}
     assert buchi.guard('T0_init', 'accept_S1').check(['a', 'b'])

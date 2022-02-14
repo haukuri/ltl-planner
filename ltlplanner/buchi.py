@@ -1,22 +1,22 @@
 from .booleans.expressions import Expression
-from .promela import PromelaOutput, parse as parse_promela
+from .promela import parse as parse_promela
 from .booleans.parser import parse as parse_boolean_expression
 from .ltl2ba_wrapper import run_ltl2ba
-from .graph import ConcreteGraph
+from .graph import Graph
 
 empty_set = frozenset()
 
 
-class Buchi(ConcreteGraph):
-    def __init__(self, promela_output: PromelaOutput):
+class Buchi(Graph):
+    def __init__(self):
         super().__init__()
-        self.initial = set(promela_output.initial_states)
-        self.accept = set(promela_output.accept_states)
-        guards = {}
-        for (src, dst), guard_formula in promela_output.edges.items():
-            guards[(src, dst)] = parse_boolean_expression(guard_formula)
-            self.add_edge(src, dst)
-        self.__guards = guards
+        self.initial = set()
+        self.accept = set()
+        self.__guards = {}
+
+    def add_edge(self, src, dst, guard: Expression):
+        super().add_edge(src, dst)
+        self.__guards[(src, dst)] = guard
 
     def guard(self, src, dst) -> Expression:
         """
@@ -25,9 +25,18 @@ class Buchi(ConcreteGraph):
         """
         return self.__guards[(src, dst)]
 
+    @classmethod
+    def from_promela(cls, promela):
+        buchi = cls()
+        buchi.initial |= promela.initial_states
+        buchi.accept |= promela.accept_states
+        for (src, dst), guard_formula in promela.edges.items():
+            guard = parse_boolean_expression(guard_formula)
+            buchi.add_edge(src, dst, guard)
+        return buchi
 
-def from_ltl(formula: str) -> Buchi:
-    promela_output = run_ltl2ba(formula)
-    promela_output = parse_promela(promela_output)
-    buchi = Buchi(promela_output)
-    return buchi
+    @classmethod
+    def from_ltl(cls, formula: str) -> 'Buchi':
+        promela_output = run_ltl2ba(formula)
+        promela_output = parse_promela(promela_output)
+        return cls.from_promela(promela_output)
