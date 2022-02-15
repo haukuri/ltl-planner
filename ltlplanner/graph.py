@@ -1,5 +1,6 @@
 from .utils import BidirectionalEdgeMap
 
+
 class Graph:
     def __init__(self):
         self.__edges = BidirectionalEdgeMap()
