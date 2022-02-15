@@ -4,7 +4,7 @@ from .graph import Graph
 
 class TransitionSystem(Graph):
 	def __init__(self):
-		super().__init__(self)
+		super().__init__()
 		self.__labels = defaultdict(set)
 
 	def labels(self, node):
