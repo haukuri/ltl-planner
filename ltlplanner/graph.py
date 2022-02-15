@@ -4,6 +4,8 @@ from .utils import BidirectionalEdgeMap
 class Graph:
     def __init__(self):
         self.__edges = BidirectionalEdgeMap()
+        self.initial = set()
+        self.accept = set()
 
     def add_edge(self, src, dst):
         return self.__edges.add(src, dst)

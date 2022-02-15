@@ -10,8 +10,6 @@ empty_set = frozenset()
 class Buchi(Graph):
     def __init__(self):
         super().__init__()
-        self.initial = set()
-        self.accept = set()
         self.__guards = {}
 
     def add_edge(self, src, dst, guard: Expression):
