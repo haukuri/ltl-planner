@@ -1,7 +1,5 @@
 import itertools
 
-from .graph import Graph
-
 
 class ProductGraph:
 	def __init__(self, buchi, ts):
@@ -15,7 +13,7 @@ class ProductGraph:
 		buchi_post = self._buchi.post(src_buchi_node)
 		ts_post = self._ts.post(src_ts_node)
 		result = set()
-		for node = in itertools.product(buchi_post, ts_post):
+		for node in itertools.product(buchi_post, ts_post):
 			buchi_post_node, ts_post_node = node
 			labels = self._ts.labels(ts_post_node)
 			guard = self._buchi.guard(src_buchi_node, buchi_post_node)
