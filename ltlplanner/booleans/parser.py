@@ -1,5 +1,8 @@
 from .lexer import get_lexer
-from .expressions import *
+from .expressions import (
+    ORExpression, ANDExpression, NotExpression, 
+    SymbolExpression, TrueExpression, Expression
+)
 
 class Parser:
     def __init__(self, formula):
