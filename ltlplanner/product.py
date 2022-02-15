@@ -29,9 +29,8 @@ class ProductGraph:
 		result = set()
 		for node in itertools.product(buchi_pre, ts_pre):
 			buchi_pre_node, ts_pre_node = node
-			labels = self._ts.labels(dst_ts_node)
 			guard = self._buchi.guard(buchi_pre_node, dst_buchi_node)
-			if guard.check(labels):
+			if guard.check(dst_labels):
 				result.add(node)
 		return result
 
