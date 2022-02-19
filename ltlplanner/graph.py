@@ -18,3 +18,10 @@ class Graph:
 
     def edges(self):
         return self.__edges.edges()
+
+    def nodes(self):
+        nodes = set()
+        for (s, d) in self.edges():
+            nodes.add(s)
+            nodes.add(d)
+        return nodes
