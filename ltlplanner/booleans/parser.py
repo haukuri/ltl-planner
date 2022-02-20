@@ -1,8 +1,13 @@
 from .lexer import get_lexer
 from .expressions import (
-    ORExpression, ANDExpression, NotExpression, 
-    SymbolExpression, TrueExpression, Expression
+    ORExpression,
+    ANDExpression,
+    NotExpression,
+    SymbolExpression,
+    TrueExpression,
+    Expression,
 )
+
 
 class Parser:
     def __init__(self, formula):
