@@ -34,7 +34,7 @@ class Buchi(Graph):
         return buchi
 
     @classmethod
-    def from_ltl(cls, formula: str) -> 'Buchi':
+    def from_ltl(cls, formula: str) -> "Buchi":
         promela_output = run_ltl2ba(formula)
         promela_output = parse_promela(promela_output)
         return cls.from_promela(promela_output)

@@ -4,13 +4,14 @@ from collections import defaultdict
 
 from .graph import Graph
 
-class TransitionSystem(Graph):
-	def __init__(self):
-		super().__init__()
-		self.__labels = defaultdict(set)
 
-	def labels(self, node):
-		return self.__labels[node]
+class TransitionSystem(Graph):
+    def __init__(self):
+        super().__init__()
+        self.__labels = defaultdict(set)
+
+    def labels(self, node):
+        return self.__labels[node]
 
 def rectworld(rows, columns, initial_state=None):
 	def neighbors_of(r, c):
