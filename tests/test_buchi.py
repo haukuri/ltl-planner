@@ -27,9 +27,9 @@ def test_buchi_from_ltl():
     ltl = '[]<>a && []<>b '
     buchi_graph = Buchi.from_ltl(ltl)
     actual_guard = buchi_graph.guard("T0_init", "accept_S1")
-    assert actual_guard.check(["a", "b"]) == True
-    assert actual_guard.check(["a"]) == False
-    assert actual_guard.check(["b"]) == False
+    assert actual_guard.check(["a", "b"]) is True
+    assert actual_guard.check(["a"]) is False
+    assert actual_guard.check(["b"]) is False
 
 def test_buchi_from_promela():
     promela_nda = parse_promela(sample_promela)
