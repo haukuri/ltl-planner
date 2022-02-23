@@ -1,17 +1,13 @@
 import random
 
-from collections import defaultdict
-
 from .graph import Graph
 
 
 class TransitionSystem(Graph):
-    def __init__(self):
-        super().__init__()
-        self.__labels = defaultdict(set)
 
-    def labels(self, node):
-        return self.__labels[node]
+    def labels(self, node) -> set[str]:
+        labels = self.node_attrs[node].setdefault("labels", set())
+        return labels
 
 
 def rectworld(rows, columns, initial_state=None):
