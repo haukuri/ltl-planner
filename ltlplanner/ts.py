@@ -81,9 +81,8 @@ def board_to_ts(board, obstacle_label="wall"):
     num_rows = len(board)
     num_cols = len(board[0])
     ts = rectworld(num_rows, num_cols)
-    for row in range(len(board)):
-        for col in range(len(board[0])):
-            obstacle = board[row][col]
+    for row_num, row in enumerate(board):
+        for col_num, obstacle in enumerate(row):
             if obstacle:
-                ts.labels((row, col)).add(obstacle_label)
+                ts.labels((row_num, col_num)).add(obstacle_label)
     return ts
