@@ -50,10 +50,10 @@ def maze(width=81, height=51, complexity=0.75, density=0.75):
     Z[0, :] = Z[-1, :] = 1
     Z[:, 0] = Z[:, -1] = 1
     # Make isles
-    for i in range(density):
+    for _ in range(density):
         x, y = random.randint(0, width // 2) * 2, random.randint(0, height // 2) * 2
         Z[y, x] = 1
-        for j in range(complexity):
+        for _ in range(complexity):
             neighbours = []
             if x > 1:
                 neighbours.append((y, x - 2))
