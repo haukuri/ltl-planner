@@ -8,20 +8,12 @@ empty_set = frozenset()
 
 
 class Buchi(Graph):
-    def __init__(self):
-        super().__init__()
-        self.__guards = {}
-
-    def add_edge(self, src, dst, guard: Expression):
-        super().add_edge(src, dst)
-        self.__guards[(src, dst)] = guard
-
     def guard(self, src, dst) -> Expression:
         """
         Returns the guard expression for the edge between src and dst.
         Throws KeyError if the edge does not exist.
         """
-        return self.__guards[(src, dst)]
+        return self.edge_attrs[(src, dst)]["guard"]
 
     @classmethod
     def from_promela(cls, promela):
@@ -30,7 +22,7 @@ class Buchi(Graph):
         buchi.accept |= promela.accept_states
         for (src, dst), guard_formula in promela.edges.items():
             guard = parse_boolean_expression(guard_formula)
-            buchi.add_edge(src, dst, guard)
+            buchi.add_edge(src, dst, guard=guard)
         return buchi
 
     @classmethod
