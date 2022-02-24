@@ -3,6 +3,13 @@ import itertools
 import tkinter as tk
 
 from tkinter import ttk
+from pathlib import Path
+
+
+def colorspace():
+    color_file = Path(__file__).parent / "tk_colors.txt"
+    with color_file.open("r") as f:
+        return f.readlines()
 
 def draw_labels(canvas, offset_x, offset_y, width, height, colors):
     num_colors = len(colors)
