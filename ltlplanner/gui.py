@@ -1,6 +1,27 @@
+import math
+import itertools
 import tkinter as tk
 
 from tkinter import ttk
+
+def draw_labels(canvas, offset_x, offset_y, width, height, colors):
+    num_colors = len(colors)
+    num_rows = int(math.sqrt(num_colors))
+    num_cols = math.ceil(num_colors / num_rows)
+    dot_size = min(height // num_rows, width // num_cols)
+    dot_size = int(dot_size * 0.8) # shrink a little to leave a margin
+    padding_x = (width - num_cols * dot_size) // 2
+    padding_y = (height - num_rows * dot_size) // 2
+    grid_indices = itertools.product(range(num_rows), range(num_cols))
+    for (row, col), color in zip(grid_indices, colors):
+        print(row, col)
+        x = offset_x + padding_x + dot_size * col
+        y = offset_y + padding_y + dot_size * row
+        canvas.create_oval(
+            x, y, x + dot_size - 4, y + dot_size - 4,
+            fill=color
+        )
+
 
 def render_world(canvas, world):
     """
@@ -24,21 +45,23 @@ def render_world(canvas, world):
     padding_y = (canvas_height - num_rows * cell_size) // 2
 
     x, y = padding_x, padding_y
-    height = num_rows * cell_size
-    width =  num_cols * cell_size
-    canvas.create_rectangle(x, y, x + width, y + height,
-        fill="gray", outline="gray")
 
     for row_num, row in enumerate(world):
-        for col_num, fill_color in enumerate(row):
+        for col_num, colors in enumerate(row):
             x = padding_x + cell_size * col_num
             y = padding_y + cell_size * row_num
-            if fill_color is None:
-                fill_color = "gray"
-            canvas.create_rectangle(
-                x, y, x + cell_size, y + cell_size,
-                fill=fill_color, outline=None
-            )
+            if colors is None:
+                canvas.create_rectangle(
+                    x, y, x + cell_size, y + cell_size,
+                    fill="gray", outline=None
+                )
+            else:
+                canvas.create_rectangle(
+                    x, y, x + cell_size, y + cell_size,
+                    fill="white", outline=None
+                )
+                draw_labels(canvas, x, y, cell_size, cell_size, colors)
+
 
 def main():
     app = tk.Tk()
@@ -53,10 +76,10 @@ def main():
     frame.pack()
 
     world = [
-        [None, "blue", None],
-        [None, "yellow", "red"],
-        ["white", "blue", None],
-        ["green", None, None]
+        [None, ["blue", "green"], None],
+        [None, ["yellow"], ["blue", "red"]],
+        [None, ["blue", "yellow"], None],
+        [["green"], None, None]
     ]
 
     render_world(canvas, world)
