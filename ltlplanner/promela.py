@@ -37,15 +37,15 @@ class Parser:
         edges = {}
         self.formula = self.accept(Parser.never_regx)["formula"]
         vertex = self.accept(Parser.vertex_regx)
-        while vertex != None:
+        while vertex is not None:
             vertex_name = vertex["name"]
-            if self.accept(Parser.if_regex) != None:
+            if self.accept(Parser.if_regex) is not None:
                 edge = self.accept(Parser.edge_regex)
-                while edge != None:
+                while edge is not None:
                     edges[(vertex_name, edge["dest"])] = edge["cond"]
                     edge = self.accept(Parser.edge_regex)
                 self.accept(Parser.fi_regex)
-            elif self.accept(Parser.skip_regex) == None:
+            elif self.accept(Parser.skip_regex) is None:
                 raise ParseException(
                     "Expected 'if' or 'skip' but got %s" % self.instring[self.pos]
                 )
@@ -54,7 +54,7 @@ class Parser:
         self.eat_whitespace()
         if self.pos != len(self.instring):
             raise ParseException(
-                "Input not fully parsed. Remainder: %s" % self.instring[self.pos :]
+                "Input not fully parsed. Remainder: %s" % self.instring[self.pos:]
             )
         return edges
 
