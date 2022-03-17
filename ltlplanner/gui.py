@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from typing import Optional, Collection
 import math
 import itertools
 import time
@@ -89,8 +91,12 @@ def iter_2d(rows):
         for col_num, item in enumerate(row):
             yield row_num, col_num, item
 
+@dataclass
+class SimulationState:
+    world: list[Optional[Collection[str]]]
+    agent_position: Optional[Vector2D]
 
-def render_world(canvas, world, agent_position):
+def render_world(canvas, state: SimulationState):
     """
     Renders a 2D "world" board onto a canvas.
 
@@ -103,12 +109,13 @@ def render_world(canvas, world, agent_position):
         [["green"], None, None],
     ]
     """
+    
     t_start = time.time()
     canvas.delete("all")  # erase everything
     canvas_width = int(canvas["width"])
     canvas_height = int(canvas["height"])
-    num_rows = len(world)
-    num_cols = max(len(r) for r in world)
+    num_rows = len(state.world)
+    num_cols = max(len(r) for r in state.world)
     (
         cell_size,
         padding_x,
@@ -117,7 +124,7 @@ def render_world(canvas, world, agent_position):
 
     x, y = padding_x, padding_y
 
-    for row_num, col_num, colors in iter_2d(world):
+    for row_num, col_num, colors in iter_2d(state.world):
         x = padding_x + cell_size * col_num
         y = padding_y + cell_size * row_num
         if colors is None:
@@ -132,9 +139,10 @@ def render_world(canvas, world, agent_position):
             )
             draw_labels(canvas, x, y, cell_size, cell_size, colors)
 
-    agent_x = padding_x + cell_size * agent_position.x
-    agent_y = padding_y + cell_size * agent_position.y
-    draw_agent_robot(canvas, agent_x, agent_y, cell_size, cell_size)
+    if state.agent_position is not None:
+        agent_x = padding_x + cell_size * state.agent_position.x
+        agent_y = padding_y + cell_size * state.agent_position.y
+        draw_agent_robot(canvas, agent_x, agent_y, cell_size, cell_size)
     print("render_world elapsed time:", (time.time() - t_start) * 1_000, "ms")
 
 
@@ -206,7 +214,8 @@ def main():
         def set_value(self, value):
             nonlocal agent_position
             agent_position = value
-            render_world(canvas, world, agent_position)
+            state = SimulationState(world=world, agent_position=agent_position)
+            render_world(canvas, state)
 
     animator = AgentAnimator()
     animator.start()
