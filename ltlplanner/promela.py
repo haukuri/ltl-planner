@@ -48,14 +48,14 @@ class Parser:
                 self.accept(Parser.fi_regex)
             elif self.accept(Parser.skip_regex) is None:
                 raise ParseException(
-                    "Expected 'if' or 'skip' but got %s" % self.instring[self.pos]
+                    f"Expected 'if' or 'skip' but got {self.instring[self.pos]}"
                 )
             vertex = self.accept(Parser.vertex_regx)
         self.accept(Parser.end_regex)
         self.eat_whitespace()
         if self.pos != len(self.instring):
             raise ParseException(
-                "Input not fully parsed. Remainder: %s" % self.instring[self.pos:]
+                f"Input not fully parsed. Remainder: {self.instring[self.pos:]}"
             )
         return edges
 
