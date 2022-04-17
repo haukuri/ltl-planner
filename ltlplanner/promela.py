@@ -17,6 +17,7 @@ class Parser:
     def __init__(self, instring):
         self.instring = instring
         self.pos = 0
+        self.formula = None
 
     def eat_whitespace(self):
         match = Parser.white_regx.match(self.instring, self.pos)
