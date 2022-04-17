@@ -21,7 +21,7 @@ class Parser:
 
     def eat_whitespace(self):
         match = Parser.white_regx.match(self.instring, self.pos)
-        while match != None:
+        while match is not None:
             self.pos += len(match.group(0))
             match = Parser.white_regx.match(self.instring, self.pos)
 
@@ -29,7 +29,7 @@ class Parser:
         if strip_whitespace:
             self.eat_whitespace()
         match = expr.match(self.instring, self.pos)
-        if match == None:
+        if match is None:
             return None
         self.pos += len(match.group(0))
         return match.groupdict()
