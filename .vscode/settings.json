@@ -2,7 +2,16 @@
     "python.formatting.provider": "black",
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    "python.linting.pylintEnabled": true,
+    "python.linting.pylintEnabled": false,
     "python.linting.enabled": true,
-    "python.linting.pylintArgs": ["--rcfile", "pylintrc"]
+    "python.linting.pylintArgs": [
+        "--rcfile",
+        "pylintrc"
+    ],
+    "python.linting.flake8Enabled": true,
+    "python.analysis.diagnosticMode": "openFilesOnly",
+    "python.linting.cwd": "",
+    "C_Cpp.codeAnalysis.exclude": {
+        "env/**": true
+    }
 }
