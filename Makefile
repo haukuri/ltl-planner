@@ -10,7 +10,8 @@ test: dependencies env
 	$(PYTHON) -m pytest
 
 lint: env
-	$(PYTHON) -m flake8 ltlplanner
+	$(PYTHON) -m flake8 ltlplanner --count --select=E9,F63,F7,F82 --show-source --statistics
+	$(PYTHON) -m flake8 ltlplanner --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
 pyclean:
 	rm -r ltlplanner/**/__pycache__
