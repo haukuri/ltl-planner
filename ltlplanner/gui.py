@@ -91,10 +91,12 @@ def iter_2d(rows):
         for col_num, item in enumerate(row):
             yield row_num, col_num, item
 
+
 @dataclass
 class SimulationState:
     world: list[Optional[Collection[str]]]
     agent_position: Optional[Vector2D]
+
 
 def render_world(canvas, state: SimulationState):
     """
@@ -109,7 +111,7 @@ def render_world(canvas, state: SimulationState):
         [["green"], None, None],
     ]
     """
-    
+
     t_start = time.time()
     canvas.delete("all")  # erase everything
     canvas_width = int(canvas["width"])

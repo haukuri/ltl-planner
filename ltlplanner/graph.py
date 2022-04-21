@@ -2,8 +2,10 @@ from collections import defaultdict
 
 from .utils import BidirectionalEdgeMap
 
+
 def _defaultdict_of_dict():
     return defaultdict(dict)
+
 
 class Graph:
     def __init__(self):
