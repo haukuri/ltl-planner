@@ -9,7 +9,11 @@ clean: pyclean envclean
 
 test: dependencies env
 	$(COVERAGE) run -m pytest
+	
+
+coverage: test
 	$(COVERAGE) report --omit=tests/*
+	$(COVERAGE) html --omit=tests/* --directory=output/coverage/
 
 lint: env
 	$(PYTHON) -m flake8 ltlplanner --count --select=E9,F63,F7,F82 --show-source --statistics
