@@ -1,4 +1,5 @@
 PYTHON = ./env/bin/python
+COVERAGE = ./env/bin/coverage
 
 dependencies:
 	$(MAKE) -C ltl2ba
@@ -7,7 +8,8 @@ clean: pyclean envclean
 	$(MAKE) -C ltl2ba clean
 
 test: dependencies env
-	$(PYTHON) -m pytest
+	$(COVERAGE) run -m pytest
+	$(COVERAGE) report --omit=tests/*
 
 lint: env
 	$(PYTHON) -m flake8 ltlplanner --count --select=E9,F63,F7,F82 --show-source --statistics
