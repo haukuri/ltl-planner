@@ -22,7 +22,8 @@ envclean:
 dependency_diagram: env
 	./env/bin/pydeps -o output/dependency_graph.png -T png ltlplanner
 
-env:
+env: requirements.txt
+	rm -r env || true
 	python3.10 -m venv env --prompt "ltlplanner"
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install -e .
