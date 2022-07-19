@@ -1,5 +1,5 @@
 from ltlplanner.booleans import parser
-from ltlplanner.booleans.expressions import *
+from ltlplanner.booleans.expressions import ANDExpression, NotSymbolExpression
 
 
 def test_boolean_distance():
