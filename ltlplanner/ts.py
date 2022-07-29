@@ -10,26 +10,31 @@ class TransitionSystem(Graph):
         return labels
 
 
-def rectworld(rows, columns, initial_state=None):
-    def neighbors_of(r, c):
-        delta = (-1, 0, 1)
-        for dr in delta:
-            nr = r + dr
-            if nr < 0 or nr >= rows:
+def neighbors_of(r: int, c: int, num_rows: int, num_columns: int):
+    """
+    Computes the up, down, left and right neighbors of a cell
+    on a rectangular grid.
+    """
+    delta = (-1, 0, 1)
+    for dr in delta:
+        nr = r + dr
+        if nr < 0 or nr >= num_rows:
+            continue
+        for dc in delta:
+            nc = c + dc
+            if nc < 0 or nc >= num_columns:
                 continue
-            for dc in delta:
-                nc = c + dc
-                if nc < 0 or nc >= columns:
-                    continue
-                if nr == r and nc == c:
-                    continue
-                yield nr, nc
+            if nr == r and nc == c:
+                continue
+            yield nr, nc
 
+
+def rectworld(rows: int, columns: int, initial_state=None):
     g = TransitionSystem()
     for r in range(rows):
         for c in range(columns):
             node = (r, c)
-            for neighbor in neighbors_of(r, c):
+            for neighbor in neighbors_of(r, c, rows, columns):
                 g.add_edge(node, neighbor)
     if initial_state:
         g.initial.add(initial_state)
