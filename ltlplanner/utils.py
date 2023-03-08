@@ -1,6 +1,5 @@
 import math
 
-from collections import defaultdict
 from dataclasses import dataclass
 
 
@@ -17,31 +16,6 @@ def get_item_or_initialize(collection, key, default_factory):
         item = default_factory()
         collection[key] = item
     return item
-
-
-class BidirectionalEdgeMap:
-    def __init__(self):
-        self.__post = defaultdict(set)
-        self.__pre = defaultdict(set)
-
-    def add(self, a, b):
-        self.post(a).add(b)
-        self.pre(b).add(a)
-
-    def remove(self, a, b):
-        self.post(a).remove(b)
-        self.pre(b).remove(a)
-
-    def post(self, a):
-        return self.__post[a]
-
-    def pre(self, b):
-        return self.__pre[b]
-
-    def edges(self):
-        for a, post in self.__post.items():
-            for b in post:
-                yield (a, b)
 
 
 @dataclass
