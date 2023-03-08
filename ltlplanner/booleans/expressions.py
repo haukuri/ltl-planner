@@ -11,7 +11,7 @@ class Expression(abc.ABC):
     def __eq__(self, o: object) -> bool:
         return isinstance(o, type(self))
 
-    def check(self, label):
+    def check(self, label) -> bool:
         raise NotImplementedError()
 
     def distance(self, label):
@@ -19,6 +19,16 @@ class Expression(abc.ABC):
 
     def nnf(self):
         return self
+
+    def children(self) -> list["Expression"]:
+        return []
+
+    def symbols(self) -> set[str]:
+        s = set()
+        for child in self.children():
+            child_symbols = child.symbols()
+            s.update(child_symbols)
+        return s
 
 
 class SymbolExpression(Expression):
@@ -36,9 +46,6 @@ class SymbolExpression(Expression):
     def __eq__(self, o: object) -> bool:
         return super().__eq__(o) and self.symbol == o.symbol
 
-    def children(self):
-        return []
-
     def check(self, label):
         return self.symbol in label
 
@@ -47,6 +54,9 @@ class SymbolExpression(Expression):
             return 0
         else:
             return 1
+
+    def symbols(self):
+        return {self.symbol}
 
 
 class NotSymbolExpression(Expression):
@@ -64,9 +74,6 @@ class NotSymbolExpression(Expression):
     def __eq__(self, o: object) -> bool:
         return super().__eq__(o) and self.symbol == o.symbol
 
-    def children(self):
-        return []
-
     def check(self, label):
         return self.symbol not in label
 
@@ -75,6 +82,9 @@ class NotSymbolExpression(Expression):
             return 0
         else:
             return 1
+
+    def symbols(self):
+        return {self.symbol}
 
 
 class TrueExpression(Expression):
@@ -89,9 +99,6 @@ class TrueExpression(Expression):
     def __iter__(self):
         for expr in [self]:
             yield expr
-
-    def children(self):
-        return []
 
     def check(self, label):
         return True
@@ -112,6 +119,9 @@ class NotExpression(Expression):
     def __iter__(self):
         for expr in itertools.chain([self], self.inner):
             yield expr
+
+    def __eq__(self, o):
+        return super().__eq__(o) and self.inner == o.inner
 
     def children(self):
         return [self.inner]
