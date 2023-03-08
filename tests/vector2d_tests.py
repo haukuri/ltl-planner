@@ -1,4 +1,5 @@
-from ltlplanner.gui import Vector2D
+from ltlplanner.utils import Vector2D
+
 
 def test_vector2d_subtraction():
     v1 = Vector2D(4, 4)
