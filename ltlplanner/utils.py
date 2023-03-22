@@ -38,13 +38,8 @@ class Vector2D:
         return Vector2D.from_polar(angle, magnitude)
 
     def __mul__(self, other):
-        angle = self.angle()
-        magnitude = self.magnitude()
         if isinstance(other, Real):
-            if other < 0:
-                angle += math.pi
-            magnitude *= abs(other)
-            return Vector2D.from_polar(angle, magnitude)
+            return Vector2D(x=self.x * other, y=self.y * other)
         elif isinstance(other, Vector2D):
             return (self.x * other.x) + (self.y * other.y)
 
