@@ -46,8 +46,7 @@ class Vector2D:
             magnitude *= abs(other)
             return Vector2D.from_polar(angle, magnitude)
         elif isinstance(other, Vector2D):
-            theta = angle - other.angle()
-            return magnitude * other.magnitude() * math.cos(theta)
+            return (self.x * other.x) + (self.y * other.y)
 
     def __add__(self, other):
         try:
