@@ -1,5 +1,7 @@
 import math
 
+from numbers import Real
+
 from dataclasses import dataclass
 
 
@@ -20,8 +22,8 @@ def get_item_or_initialize(collection, key, default_factory):
 
 @dataclass
 class Vector2D:
-    x: float
-    y: float
+    x: Real
+    y: Real
 
     def magnitude(self):
         "Returns the magnitude/scale/length of the vector"
@@ -38,10 +40,14 @@ class Vector2D:
     def __mul__(self, other):
         angle = self.angle()
         magnitude = self.magnitude()
-        if other < 0:
-            angle += math.pi
-        magnitude *= abs(other)
-        return Vector2D.from_polar(angle, magnitude)
+        if isinstance(other, Real):
+            if other < 0:
+                angle += math.pi
+            magnitude *= abs(other)
+            return Vector2D.from_polar(angle, magnitude)
+        elif isinstance(other, Vector2D):
+            theta = angle - other.angle()
+            return magnitude * other.magnitude() * math.cos(theta)
 
     def __add__(self, other):
         try:
