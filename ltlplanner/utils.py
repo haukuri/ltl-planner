@@ -1,6 +1,7 @@
 import math
 
-from collections import defaultdict
+from numbers import Real
+
 from dataclasses import dataclass
 
 
@@ -19,35 +20,10 @@ def get_item_or_initialize(collection, key, default_factory):
     return item
 
 
-class BidirectionalEdgeMap:
-    def __init__(self):
-        self.__post = defaultdict(set)
-        self.__pre = defaultdict(set)
-
-    def add(self, a, b):
-        self.post(a).add(b)
-        self.pre(b).add(a)
-
-    def remove(self, a, b):
-        self.post(a).remove(b)
-        self.pre(b).remove(a)
-
-    def post(self, a):
-        return self.__post[a]
-
-    def pre(self, b):
-        return self.__pre[b]
-
-    def edges(self):
-        for a, post in self.__post.items():
-            for b in post:
-                yield (a, b)
-
-
 @dataclass
 class Vector2D:
-    x: float
-    y: float
+    x: Real
+    y: Real
 
     def magnitude(self):
         "Returns the magnitude/scale/length of the vector"
@@ -62,12 +38,10 @@ class Vector2D:
         return Vector2D.from_polar(angle, magnitude)
 
     def __mul__(self, other):
-        angle = self.angle()
-        magnitude = self.magnitude()
-        if other < 0:
-            angle += math.pi
-        magnitude *= abs(other)
-        return Vector2D.from_polar(angle, magnitude)
+        if isinstance(other, Real):
+            return Vector2D(x=self.x * other, y=self.y * other)
+        elif isinstance(other, Vector2D):
+            return (self.x * other.x) + (self.y * other.y)
 
     def __add__(self, other):
         try:

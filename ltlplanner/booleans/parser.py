@@ -23,9 +23,10 @@ class Parser:
                 syms += [token.value]
         return list(set(syms))
 
-    def parse(self):
+    def parse(self, nnf=True):
         expr = self.orx()
-        expr = expr.nnf()
+        if nnf:
+            expr = expr.nnf()
         expr.formula = self.formula
         return expr
 
@@ -88,6 +89,6 @@ class Parser:
         return expr
 
 
-def parse(formula) -> Expression:
+def parse(formula, nnf=True) -> Expression:
     parser = Parser(formula)
-    return parser.parse()
+    return parser.parse(nnf=nnf)
