@@ -2,6 +2,11 @@ import io
 
 
 class DotWriter:
+    _nodes: dict
+    _edges: dict
+    _indent: int
+    name: str
+
     def __init__(self, name=None):
         self.name = name if name else "graph"
         self._nodes = {}
