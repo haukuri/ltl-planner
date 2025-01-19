@@ -18,12 +18,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.12"
-    - name: Setup virtualenv
-      run: make env
+    - uses: astral-sh/setup-uv@5.2.1
     - name: Build ltl2ba
       run: make dependencies
     - name: Lint with flake8
