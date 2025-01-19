@@ -1,3 +1,17 @@
+[project]
+name = "ltl-planner"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "coverage>=7.6.10",
+    "ply>=3.11",
+    "pydeps>=3.0.0",
+    "pytest>=8.3.4",
+    "ruff>=0.9.2",
+]
+
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q"
@@ -8,3 +22,10 @@ python_files = [
     "test_*.py",
     "*_tests.py"
 ]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = []
