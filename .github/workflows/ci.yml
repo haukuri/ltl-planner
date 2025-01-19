@@ -18,7 +18,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - uses: astral-sh/setup-uv@5.2.1
+    - uses: astral-sh/setup-uv
     - name: Build ltl2ba
       run: make dependencies
     - name: Lint with flake8
