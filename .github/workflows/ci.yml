@@ -21,7 +21,7 @@ jobs:
     - uses: astral-sh/setup-uv@v5.2.1
     - name: Build ltl2ba
       run: make dependencies
-    - name: Lint with flake8
+    - name: Lint
       run: make lint
-    - name: Test with pytest
+    - name: Test
       run: make test
