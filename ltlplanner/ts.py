@@ -26,6 +26,8 @@ def neighbors_of(r: int, c: int, num_rows: int, num_columns: int):
                 continue
             if nr == r and nc == c:
                 continue
+            if abs(dr) + abs(dc) != 1:
+                continue
             yield nr, nc
 
 
@@ -52,12 +54,14 @@ def maze(width=81, height=51, complexity=0.75, density=0.75):
     # Build actual maze
     Z = [[False for _ in range(width)] for _ in range(height)]
     # Fill borders
-    Z[0, :] = Z[-1, :] = 1
-    Z[:, 0] = Z[:, -1] = 1
+    for c in range(width):
+        Z[0][c] = Z[-1][c] = 1
+    for r in range(height):
+        Z[r][0] = Z[r][-1] = 1
     # Make isles
     for _ in range(density):
         x, y = random.randint(0, width // 2) * 2, random.randint(0, height // 2) * 2
-        Z[y, x] = 1
+        Z[y][x] = 1
         for _ in range(complexity):
             neighbours = []
             if x > 1:
@@ -70,16 +74,16 @@ def maze(width=81, height=51, complexity=0.75, density=0.75):
                 neighbours.append((y + 2, x))
             if neighbours:
                 y_, x_ = random.choice(neighbours)
-                if Z[y_, x_] == 0:
-                    Z[y_, x_] = 1
-                    Z[y_ + (y - y_) // 2, x_ + (x - x_) // 2] = 1
+                if Z[y_][x_] == 0:
+                    Z[y_][x_] = 1
+                    Z[y_ + (y - y_) // 2][x_ + (x - x_) // 2] = 1
                     x, y = x_, y_
     return Z
 
 
 def shrunk_maze(rows, cols):
     z = maze(cols + 2, rows + 2)
-    return z[1:-1, 1:-1]
+    return [row[1:-1] for row in z[1:-1]]
 
 
 def board_to_ts(board, obstacle_label="wall"):
