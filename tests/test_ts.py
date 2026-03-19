@@ -1,4 +1,3 @@
-import pytest
 from ltlplanner.ts import TransitionSystem, neighbors_of, rectworld, board_to_ts, maze, shrunk_maze
 
 
