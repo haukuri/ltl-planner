@@ -33,221 +33,53 @@
 #include <unistd.h>
 #include "ltl2ba.h"
 
-FILE	*tl_out;
-
-int	tl_stats     = 0; /* time and size stats */	
-int tl_simp_log  = 1; /* logical simplification */
-int tl_simp_diff = 1; /* automata simplification */
-int tl_simp_fly  = 1; /* on the fly simplification */
-int tl_simp_scc  = 1; /* use scc simplification */
-int tl_fjtofj    = 1; /* 2eme fj */
-int	tl_errs      = 0;
-int	tl_verbose   = 0;
-int	tl_terse     = 0;
-unsigned long	All_Mem = 0;
-
-static char	uform[4096];
-static int	hasuform=0, cnt=0;
-static char     **ltl_file = (char **)0;
-static char     **add_ltl  = (char **)0;
-static char     out1[64];
-
-static void	tl_endstats(void);
-static void	non_fatal(const char *);
-
-static void
-alldone(int estatus)
-{
-        if (strlen(out1) > 0)
-                (void) unlink((const char *)out1);
-        exit(estatus);
-}
-
-FILE *
-cpyfile(char *src, char *tgt)
-{       FILE *inp, *out;
-        char buf[1024];
-
-        inp = fopen(src, "r");
-        out = fopen(tgt, "w");
-        if (!inp || !out)
-        {       printf("ltl2ba: cannot cp %s to %s\n", src, tgt);
-                alldone(1);
-        }
-        while (fgets(buf, 1024, inp))
-                fprintf(out, "%s", buf);
-        fclose(inp);
-        return out;
-}
-
 char *
-emalloc(int n)
+emalloc(Ltl2baContext *ctx, int n)
 {       char *tmp;
 
         if (!(tmp = (char *) malloc(n)))
-                fatal("not enough memory");
+                fatal(ctx, "not enough memory");
         memset(tmp, 0, n);
         return tmp;
 }
 
 int
-tl_Getchar(void)
+tl_Getchar(Ltl2baContext *ctx)
 {
-	if (cnt < hasuform)
-		return uform[cnt++];
-	cnt++;
+	if (ctx->cnt < ctx->hasuform)
+		return ctx->uform[ctx->cnt++];
+	ctx->cnt++;
 	return -1;
 }
 
 void
-put_uform(void)
+put_uform(Ltl2baContext *ctx)
 {
-	fprintf(tl_out, "%s", uform);
+	fprintf(ctx->tl_out, "%s", ctx->uform);
 }
 
 void
-tl_UnGetchar(void)
+tl_UnGetchar(Ltl2baContext *ctx)
 {
-	if (cnt > 0) cnt--;
+	if (ctx->cnt > 0) ctx->cnt--;
 }
 
 static void
-usage(void)
+tl_endstats(Ltl2baContext *ctx)
 {
-        printf("usage: ltl2ba [-flag] -f 'formula'\n");
-        printf("                   or -F file\n");
-        printf(" -f 'formula'\ttranslate LTL ");
-        printf("into never claim\n");
-        printf(" -F file\tlike -f, but with the LTL ");
-        printf("formula stored in a 1-line file\n");
-        printf(" -d\t\tdisplay automata (D)escription at each step\n");
-        printf(" -s\t\tcomputing time and automata sizes (S)tatistics\n");
-        printf(" -l\t\tdisable (L)ogic formula simplification\n");
-        printf(" -p\t\tdisable a-(P)osteriori simplification\n");
-        printf(" -o\t\tdisable (O)n-the-fly simplification\n");
-        printf(" -c\t\tdisable strongly (C)onnected components simplification\n");
-        printf(" -a\t\tdisable trick in (A)ccepting conditions\n");
-	
-        alldone(1);
-}
-
-int
-tl_main(int argc, char *argv[])
-{       int i;
-	while (argc > 1 && argv[1][0] == '-')
-	{	switch (argv[1][1]) {
-		case 'f':	argc--; argv++;
-				for (i = 0; i < argv[1][i]; i++)
-				{	if (argv[1][i] == '\t'
-					||  argv[1][i] == '\"'
-					||  argv[1][i] == '\n')
-						argv[1][i] = ' ';
-				}
-				strcpy(uform, argv[1]);
-				hasuform = strlen(uform);
-				break;
-		default :	usage();
-		}
-		argc--; argv++;
-	}
-	if (hasuform == 0) usage();
-	tl_parse();
-	if (tl_stats) tl_endstats();
-	return tl_errs;
-}
-
-int
-main(int argc, char *argv[])
-{	int i;
-	tl_out = stdout;
-
-	while (argc > 1 && argv[1][0] == '-')
-        {       switch (argv[1][1]) {
-                case 'F': ltl_file = (char **) (argv+2);
-                          argc--; argv++; break;
-                case 'f': add_ltl = (char **) argv;
-                          argc--; argv++; break;
-                case 'a': tl_fjtofj = 0; break;
-                case 'c': tl_simp_scc = 0; break;
-                case 'o': tl_simp_fly = 0; break;
-                case 'p': tl_simp_diff = 0; break;
-                case 'l': tl_simp_log = 0; break;
-                case 'd': tl_verbose = 1; break;
-                case 's': tl_stats = 1; break;
-                default : usage(); break;
-                }
-                argc--, argv++;
-        }
-
-	if(!ltl_file && !add_ltl) usage();
-
-        if (ltl_file)
-        {       char formula[4096];
-                add_ltl = ltl_file-2; add_ltl[1][1] = 'f';
-                if (!(tl_out = fopen(*ltl_file, "r")))
-                {       printf("ltl2ba: cannot open %s\n", *ltl_file);
-                        alldone(1);
-                }
-                fgets(formula, 4096, tl_out);
-                fclose(tl_out);
-                tl_out = stdout;
-                *ltl_file = (char *) formula;
-        }
-        if (argc > 1)
-        {       char out2[64];
-                strcpy(out1, "_tmp1_");
-                strcpy(out2, "_tmp2_");
-                tl_out = cpyfile(argv[1], out2);
-                i = tl_main(2, add_ltl);  
-                fclose(tl_out);
-        } else 
-	{
-                if (argc > 0)
-                        i = tl_main(2, add_ltl);
-		else
-			usage();
-	}
-	return i;
-}
-
-/* Subtract the `struct timeval' values X and Y, storing the result X-Y in RESULT.
-   Return 1 if the difference is negative, otherwise 0.  */
- 
-int
-timeval_subtract (result, x, y)
-struct timeval *result, *x, *y;
-{
-	if (x->tv_usec < y->tv_usec) {
-		x->tv_usec += 1000000;
-		x->tv_sec--;
-	}
-	
-	/* Compute the time remaining to wait. tv_usec is certainly positive. */
-	result->tv_sec = x->tv_sec - y->tv_sec;
-	result->tv_usec = x->tv_usec - y->tv_usec;
-	
-	/* Return 1 if result is negative. */
-	return x->tv_sec < y->tv_sec;
-}
-
-static void
-tl_endstats(void)
-{	/*extern int Stack_mx;*/
-	printf("\ntotal memory used: %9ld\n", All_Mem);
-	/*printf("largest stack sze: %9d\n", Stack_mx);*/
-	/*cache_stats();*/
-	a_stats();
+	printf("\ntotal memory used: %9ld\n", ctx->All_Mem);
+	a_stats(ctx);
 }
 
 #define Binop(a)		\
-		fprintf(tl_out, "(");	\
-		dump(n->lft);		\
-		fprintf(tl_out, a);	\
-		dump(n->rgt);		\
-		fprintf(tl_out, ")")
+		fprintf(ctx->tl_out, "(");	\
+		dump(ctx, n->lft);		\
+		fprintf(ctx->tl_out, a);	\
+		dump(ctx, n->rgt);		\
+		fprintf(ctx->tl_out, ")")
 
 void
-dump(Node *n)
+dump(Ltl2baContext *ctx, Node *n)
 {
 	if (!n) return;
 
@@ -258,29 +90,29 @@ dump(Node *n)
 	case V_OPER:	Binop(" V ");  break;
 #ifdef NXT
 	case NEXT:
-		fprintf(tl_out, "X");
-		fprintf(tl_out, " (");
-		dump(n->lft);
-		fprintf(tl_out, ")");
+		fprintf(ctx->tl_out, "X");
+		fprintf(ctx->tl_out, " (");
+		dump(ctx, n->lft);
+		fprintf(ctx->tl_out, ")");
 		break;
 #endif
 	case NOT:
-		fprintf(tl_out, "!");
-		fprintf(tl_out, " (");
-		dump(n->lft);
-		fprintf(tl_out, ")");
+		fprintf(ctx->tl_out, "!");
+		fprintf(ctx->tl_out, " (");
+		dump(ctx, n->lft);
+		fprintf(ctx->tl_out, ")");
 		break;
 	case FALSE:
-		fprintf(tl_out, "false");
+		fprintf(ctx->tl_out, "false");
 		break;
 	case TRUE:
-		fprintf(tl_out, "true");
+		fprintf(ctx->tl_out, "true");
 		break;
 	case PREDICATE:
-		fprintf(tl_out, "(%s)", n->sym->name);
+		fprintf(ctx->tl_out, "(%s)", n->sym->name);
 		break;
 	case -1:
-		fprintf(tl_out, " D ");
+		fprintf(ctx->tl_out, " D ");
 		break;
 	default:
 		printf("Unknown token: ");
@@ -314,43 +146,196 @@ tl_explain(int n)
 }
 
 static void
-non_fatal(const char *s1)
-{	extern int tl_yychar;
+non_fatal(Ltl2baContext *ctx, const char *s1)
+{
 	int i;
 
 	printf("ltl2ba: ");
 	fputs(s1, stdout);
-	if (tl_yychar != -1 && tl_yychar != 0)
+	if (ctx->tl_yychar != -1 && ctx->tl_yychar != 0)
 	{	printf(", saw '");
-		tl_explain(tl_yychar);
+		tl_explain(ctx->tl_yychar);
 		printf("'");
 	}
-	printf("\nltl2ba: %s\n---------", uform);
-	for (i = 0; i < cnt; i++)
+	printf("\nltl2ba: %s\n---------", ctx->uform);
+	for (i = 0; i < ctx->cnt; i++)
 		printf("-");
 	printf("^\n");
 	fflush(stdout);
-	tl_errs++;
+	ctx->tl_errs++;
 }
 
 void
-tl_yyerror(char *s1)
+tl_yyerror(Ltl2baContext *ctx, char *s1)
 {
-	Fatal(s1);
+	Fatal(ctx, s1);
 }
 
 void
-Fatal(const char *s1)
+Fatal(Ltl2baContext *ctx, const char *s1)
 {
-  non_fatal(s1);
-  alldone(1);
+  non_fatal(ctx, s1);
+  /* In library mode, longjmp back to the API entry point */
+  if (ctx->error_code == 0) {
+    ctx->error_code = 1;
+    snprintf(ctx->error_msg, sizeof(ctx->error_msg), "%s", s1);
+  }
+  longjmp(ctx->error_jmp, 1);
 }
 
 void
-fatal(const char *s1)
+fatal(Ltl2baContext *ctx, const char *s1)
 {
-        non_fatal(s1);
-        alldone(1);
+  Fatal(ctx, s1);
 }
 
+/* Subtract the `struct timeval' values X and Y, storing the result X-Y in RESULT.
+   Return 1 if the difference is negative, otherwise 0.  */
 
+int
+timeval_subtract (result, x, y)
+struct timeval *result, *x, *y;
+{
+	if (x->tv_usec < y->tv_usec) {
+		x->tv_usec += 1000000;
+		x->tv_sec--;
+	}
+
+	/* Compute the time remaining to wait. tv_usec is certainly positive. */
+	result->tv_sec = x->tv_sec - y->tv_sec;
+	result->tv_usec = x->tv_usec - y->tv_usec;
+
+	/* Return 1 if result is negative. */
+	return x->tv_sec < y->tv_sec;
+}
+
+/********************************************************************\
+|*                       CLI entry point                            *|
+\********************************************************************/
+
+static void
+usage(void)
+{
+        printf("usage: ltl2ba [-flag] -f 'formula'\n");
+        printf("                   or -F file\n");
+        printf(" -f 'formula'\ttranslate LTL ");
+        printf("into never claim\n");
+        printf(" -F file\tlike -f, but with the LTL ");
+        printf("formula stored in a 1-line file\n");
+        printf(" -d\t\tdisplay automata (D)escription at each step\n");
+        printf(" -s\t\tcomputing time and automata sizes (S)tatistics\n");
+        printf(" -l\t\tdisable (L)ogic formula simplification\n");
+        printf(" -p\t\tdisable a-(P)osteriori simplification\n");
+        printf(" -o\t\tdisable (O)n-the-fly simplification\n");
+        printf(" -c\t\tdisable strongly (C)onnected components simplification\n");
+        printf(" -a\t\tdisable trick in (A)ccepting conditions\n");
+
+        exit(1);
+}
+
+static int
+tl_main(Ltl2baContext *ctx, int argc, char *argv[])
+{       int i;
+	while (argc > 1 && argv[1][0] == '-')
+	{	switch (argv[1][1]) {
+		case 'f':	argc--; argv++;
+				for (i = 0; i < argv[1][i]; i++)
+				{	if (argv[1][i] == '\t'
+					||  argv[1][i] == '\"'
+					||  argv[1][i] == '\n')
+						argv[1][i] = ' ';
+				}
+				strcpy(ctx->uform, argv[1]);
+				ctx->hasuform = strlen(ctx->uform);
+				break;
+		default :	usage();
+		}
+		argc--; argv++;
+	}
+	if (ctx->hasuform == 0) usage();
+	tl_parse(ctx);
+	if (ctx->tl_stats) tl_endstats(ctx);
+	return ctx->tl_errs;
+}
+
+int
+main(int argc, char *argv[])
+{	int i;
+	Ltl2baContext ctx_storage;
+	Ltl2baContext *ctx = &ctx_storage;
+	char **ltl_file = (char **)0;
+	char **add_ltl  = (char **)0;
+
+	ltl2ba_init_context(ctx);
+	ctx->tl_out = stdout;
+
+	while (argc > 1 && argv[1][0] == '-')
+        {       switch (argv[1][1]) {
+                case 'F': ltl_file = (char **) (argv+2);
+                          argc--; argv++; break;
+                case 'f': add_ltl = (char **) argv;
+                          argc--; argv++; break;
+                case 'a': ctx->tl_fjtofj = 0; break;
+                case 'c': ctx->tl_simp_scc = 0; break;
+                case 'o': ctx->tl_simp_fly = 0; break;
+                case 'p': ctx->tl_simp_diff = 0; break;
+                case 'l': ctx->tl_simp_log = 0; break;
+                case 'd': ctx->tl_verbose = 1; break;
+                case 's': ctx->tl_stats = 1; break;
+                default : usage(); break;
+                }
+                argc--, argv++;
+        }
+
+	if(!ltl_file && !add_ltl) usage();
+
+        if (ltl_file)
+        {       char formula[4096];
+                add_ltl = ltl_file-2; add_ltl[1][1] = 'f';
+                if (!(ctx->tl_out = fopen(*ltl_file, "r")))
+                {       printf("ltl2ba: cannot open %s\n", *ltl_file);
+                        exit(1);
+                }
+                fgets(formula, 4096, ctx->tl_out);
+                fclose(ctx->tl_out);
+                ctx->tl_out = stdout;
+                *ltl_file = (char *) formula;
+        }
+
+	/* Use setjmp for error recovery */
+	if (setjmp(ctx->error_jmp) != 0) {
+		/* Error occurred */
+		ltl2ba_free_allocs(ctx);
+		return 1;
+	}
+
+        if (argc > 1)
+        {       char out1[64], out2[64];
+                FILE *inp, *out;
+                char buf[1024];
+                strcpy(out1, "_tmp1_");
+                strcpy(out2, "_tmp2_");
+                inp = fopen(argv[1], "r");
+                out = fopen(out2, "w");
+                if (!inp || !out)
+                {       printf("ltl2ba: cannot cp %s to %s\n", argv[1], out2);
+                        exit(1);
+                }
+                while (fgets(buf, 1024, inp))
+                        fprintf(out, "%s", buf);
+                fclose(inp);
+                ctx->tl_out = out;
+                i = tl_main(ctx, 2, add_ltl);
+                fclose(ctx->tl_out);
+                (void) unlink((const char *)out1);
+        } else
+	{
+                if (argc > 0)
+                        i = tl_main(ctx, 2, add_ltl);
+		else
+			usage();
+	}
+
+	ltl2ba_free_allocs(ctx);
+	return i;
+}

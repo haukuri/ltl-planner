@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "cffi>=1.16.0",
     "coverage>=7.6.10",
     "ply>=3.11",
     "pydeps>=3.0.0",
