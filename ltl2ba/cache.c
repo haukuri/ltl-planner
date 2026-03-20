@@ -32,93 +32,82 @@
 
 #include "ltl2ba.h"
 
-typedef struct Cache {
-	Node *before;
-	Node *after;
-	int same;
-	struct Cache *nxt;
-} Cache;
-
-static Cache	*stored = (Cache *) 0;
-static unsigned long	Caches, CacheHits;
-
 static int	ismatch(Node *, Node *);
-int	sameform(Node *, Node *);
 
 void
-cache_dump(void)
+cache_dump(Ltl2baContext *ctx)
 {	Cache *d; int nr=0;
 
 	printf("\nCACHE DUMP:\n");
-	for (d = stored; d; d = d->nxt, nr++)
+	for (d = ctx->cache_stored; d; d = d->nxt, nr++)
 	{	if (d->same) continue;
-		printf("B%3d: ", nr); dump(d->before); printf("\n");
-		printf("A%3d: ", nr); dump(d->after); printf("\n");
+		printf("B%3d: ", nr); dump(ctx, d->before); printf("\n");
+		printf("A%3d: ", nr); dump(ctx, d->after); printf("\n");
 	}
 	printf("============\n");
 }
 
 Node *
-in_cache(Node *n)
+in_cache(Ltl2baContext *ctx, Node *n)
 {	Cache *d; int nr=0;
 
-	for (d = stored; d; d = d->nxt, nr++)
-		if (isequal(d->before, n))
-		{	CacheHits++;
+	for (d = ctx->cache_stored; d; d = d->nxt, nr++)
+		if (isequal(ctx, d->before, n))
+		{	ctx->CacheHits++;
 			if (d->same && ismatch(n, d->before)) return n;
-			return dupnode(d->after);
+			return dupnode(ctx, d->after);
 		}
 	return ZN;
 }
 
 Node *
-cached(Node *n)
+cached(Ltl2baContext *ctx, Node *n)
 {	Cache *d;
 	Node *m;
 
 	if (!n) return n;
-	if ((m = in_cache(n)))
+	if ((m = in_cache(ctx, n)))
 		return m;
 
-	Caches++;
-	d = (Cache *) tl_emalloc(sizeof(Cache));
-	d->before = dupnode(n);
-	d->after  = Canonical(n); /* n is released */
+	ctx->Caches++;
+	d = (Cache *) tl_emalloc(ctx, sizeof(Cache));
+	d->before = dupnode(ctx, n);
+	d->after  = Canonical(ctx, n); /* n is released */
 
 	if (ismatch(d->before, d->after))
 	{	d->same = 1;
-		releasenode(1, d->after);
+		releasenode(ctx, 1, d->after);
 		d->after = d->before;
 	}
-	d->nxt = stored;
-	stored = d;
-	return dupnode(d->after);
+	d->nxt = ctx->cache_stored;
+	ctx->cache_stored = d;
+	return dupnode(ctx, d->after);
 }
 
 void
-cache_stats(void)
+cache_stats(Ltl2baContext *ctx)
 {
-	printf("cache stores     : %9ld\n", Caches);
-	printf("cache hits       : %9ld\n", CacheHits);
+	printf("cache stores     : %9ld\n", ctx->Caches);
+	printf("cache hits       : %9ld\n", ctx->CacheHits);
 }
 
 void
-releasenode(int all_levels, Node *n)
+releasenode(Ltl2baContext *ctx, int all_levels, Node *n)
 {
 	if (!n) return;
 
 	if (all_levels)
-	{	releasenode(1, n->lft);
+	{	releasenode(ctx, 1, n->lft);
 		n->lft = ZN;
-		releasenode(1, n->rgt);
+		releasenode(ctx, 1, n->rgt);
 		n->rgt = ZN;
 	}
-	tfree((void *) n);
+	tfree(ctx, (void *) n);
 }
 
 Node *
-tl_nn(int t, Node *ll, Node *rl)
-{	Node *n = (Node *) tl_emalloc(sizeof(Node));
+tl_nn(Ltl2baContext *ctx, int t, Node *ll, Node *rl)
+{	Node *n = (Node *) tl_emalloc(ctx, sizeof(Node));
 
 	n->ntyp = (short) t;
 	n->lft  = ll;
@@ -128,12 +117,12 @@ tl_nn(int t, Node *ll, Node *rl)
 }
 
 Node *
-getnode(Node *p)
+getnode(Ltl2baContext *ctx, Node *p)
 {	Node *n;
 
 	if (!p) return p;
 
-	n =  (Node *) tl_emalloc(sizeof(Node));
+	n =  (Node *) tl_emalloc(ctx, sizeof(Node));
 	n->ntyp = p->ntyp;
 	n->sym  = p->sym; /* same name */
 	n->lft  = p->lft;
@@ -143,13 +132,13 @@ getnode(Node *p)
 }
 
 Node *
-dupnode(Node *n)
+dupnode(Ltl2baContext *ctx, Node *n)
 {	Node *d;
 
 	if (!n) return n;
-	d = getnode(n);
-	d->lft = dupnode(n->lft);
-	d->rgt = dupnode(n->rgt);
+	d = getnode(ctx, n);
+	d->lft = dupnode(ctx, n->lft);
+	d->rgt = dupnode(ctx, n->rgt);
 	return d;
 }
 
@@ -159,7 +148,7 @@ one_lft(int ntyp, Node *x, Node *in)
 	if (!x)  return 1;
 	if (!in) return 0;
 
-	if (sameform(x, in))
+	if (sameform(NULL, x, in))
 		return 1;
 
 	if (in->ntyp != ntyp)
@@ -198,7 +187,7 @@ sametrees(int ntyp, Node *a, Node *b)
 }
 
 int	/* a better isequal() */
-sameform(Node *a, Node *b)
+sameform(Ltl2baContext *ctx, Node *a, Node *b)
 {
 	if (!a && !b) return 1;
 	if (!a || !b) return 0;
@@ -214,19 +203,19 @@ sameform(Node *a, Node *b)
 	case FALSE:
 		return 1;
 	case PREDICATE:
-		if (!a->sym || !b->sym) fatal("sameform...");
+		if (!a->sym || !b->sym) fatal(ctx, "sameform...");
 		return !strcmp(a->sym->name, b->sym->name);
 
 	case NOT:
 #ifdef NXT
 	case NEXT:
 #endif
-		return sameform(a->lft, b->lft);
+		return sameform(ctx, a->lft, b->lft);
 	case U_OPER:
 	case V_OPER:
-		if (!sameform(a->lft, b->lft))
+		if (!sameform(ctx, a->lft, b->lft))
 			return 0;
-		if (!sameform(a->rgt, b->rgt))
+		if (!sameform(ctx, a->rgt, b->rgt))
 			return 0;
 		return 1;
 
@@ -236,14 +225,14 @@ sameform(Node *a, Node *b)
 
 	default:
 		printf("type: %d\n", a->ntyp);
-		fatal("cannot happen, sameform");
+		fatal(ctx, "cannot happen, sameform");
 	}
 
 	return 0;
 }
 
 int
-isequal(Node *a, Node *b)
+isequal(Ltl2baContext *ctx, Node *a, Node *b)
 {
 	if (!a && !b)
 		return 1;
@@ -266,11 +255,11 @@ isequal(Node *a, Node *b)
 	&&  strcmp(a->sym->name, b->sym->name) != 0)
 		return 0;
 
-	if (isequal(a->lft, b->lft)
-	&&  isequal(a->rgt, b->rgt))
+	if (isequal(ctx, a->lft, b->lft)
+	&&  isequal(ctx, a->rgt, b->rgt))
 		return 1;
 
-	return sameform(a, b);
+	return sameform(ctx, a, b);
 }
 
 static int
@@ -293,51 +282,51 @@ ismatch(Node *a, Node *b)
 }
 
 int
-any_term(Node *srch, Node *in)
+any_term(Ltl2baContext *ctx, Node *srch, Node *in)
 {
 	if (!in) return 0;
 
 	if (in->ntyp == AND)
-		return	any_term(srch, in->lft) ||
-			any_term(srch, in->rgt);
+		return	any_term(ctx, srch, in->lft) ||
+			any_term(ctx, srch, in->rgt);
 
-	return isequal(in, srch);
+	return isequal(ctx, in, srch);
 }
 
 int
-any_and(Node *srch, Node *in)
+any_and(Ltl2baContext *ctx, Node *srch, Node *in)
 {
 	if (!in) return 0;
 
 	if (srch->ntyp == AND)
-		return	any_and(srch->lft, in) &&
-			any_and(srch->rgt, in);
+		return	any_and(ctx, srch->lft, in) &&
+			any_and(ctx, srch->rgt, in);
 
-	return any_term(srch, in);
+	return any_term(ctx, srch, in);
 }
 
 int
-any_lor(Node *srch, Node *in)
+any_lor(Ltl2baContext *ctx, Node *srch, Node *in)
 {
 	if (!in) return 0;
 
 	if (in->ntyp == OR)
-		return	any_lor(srch, in->lft) ||
-			any_lor(srch, in->rgt);
+		return	any_lor(ctx, srch, in->lft) ||
+			any_lor(ctx, srch, in->rgt);
 
-	return isequal(in, srch);
+	return isequal(ctx, in, srch);
 }
 
 int
-anywhere(int tok, Node *srch, Node *in)
+anywhere(Ltl2baContext *ctx, int tok, Node *srch, Node *in)
 {
 	if (!in) return 0;
 
 	switch (tok) {
-	case AND:	return any_and(srch, in);
-	case  OR:	return any_lor(srch, in);
-	case   0:	return any_term(srch, in);
+	case AND:	return any_and(ctx, srch, in);
+	case  OR:	return any_lor(ctx, srch, in);
+	case   0:	return any_term(ctx, srch, in);
 	}
-	fatal("cannot happen, anywhere");
+	fatal(ctx, "cannot happen, anywhere");
 	return 0;
 }

@@ -34,13 +34,9 @@
 #include <ctype.h>
 #include "ltl2ba.h"
 
-static Symbol	*symtab[Nhash+1];
-static int	tl_lex(void);
+static int	tl_lex(Ltl2baContext *ctx);
 
-extern YYSTYPE	tl_yylval;
-char	yytext[2048];
-
-#define Token(y)        tl_yylval = tl_nn(y,ZN,ZN); return y
+#define Token(y)        ctx->tl_yylval = tl_nn(ctx, y,ZN,ZN); return y
 
 int
 isalnum_(int c)
@@ -61,34 +57,33 @@ hash(char *s)
 }
 
 static void
-getword(int first, int (*tst)(int))
+getword(Ltl2baContext *ctx, int first, int (*tst)(int))
 {	int i=0; char c;
 
-	yytext[i++]= (char ) first;
-	while (tst(c = tl_Getchar()))
-		yytext[i++] = c;
-	yytext[i] = '\0';
-	tl_UnGetchar();
+	ctx->yytext[i++]= (char ) first;
+	while (tst(c = tl_Getchar(ctx)))
+		ctx->yytext[i++] = c;
+	ctx->yytext[i] = '\0';
+	tl_UnGetchar(ctx);
 }
 
 static int
-follow(int tok, int ifyes, int ifno)
+follow(Ltl2baContext *ctx, int tok, int ifyes, int ifno)
 {	int c;
 	char buf[32];
-	extern int tl_yychar;
 
-	if ((c = tl_Getchar()) == tok)
+	if ((c = tl_Getchar(ctx)) == tok)
 		return ifyes;
-	tl_UnGetchar();
-	tl_yychar = c;
+	tl_UnGetchar(ctx);
+	ctx->tl_yychar = c;
 	sprintf(buf, "expected '%c'", tok);
-	tl_yyerror(buf);	/* no return from here */
+	tl_yyerror(ctx, buf);	/* no return from here */
 	return ifno;
 }
 
 int
-tl_yylex(void)
-{	int c = tl_lex();
+tl_yylex(Ltl2baContext *ctx)
+{	int c = tl_lex(ctx);
 #if 0
 	printf("c = %d\n", c);
 #endif
@@ -96,13 +91,13 @@ tl_yylex(void)
 }
 
 static int
-tl_lex(void)
+tl_lex(Ltl2baContext *ctx)
 {	int c;
 
 	do {
-		c = tl_Getchar();
-		yytext[0] = (char ) c;
-		yytext[1] = '\0';
+		c = tl_Getchar(ctx);
+		ctx->yytext[0] = (char ) c;
+		ctx->yytext[1] = '\0';
 
 		if (c <= 0)
 		{	Token(';');
@@ -111,54 +106,54 @@ tl_lex(void)
 	} while (c == ' ');	/* '\t' is removed in tl_main.c */
 
 	if (islower(c))
-	{	getword(c, isalnum_);
-		if (strcmp("true", yytext) == 0)
+	{	getword(ctx, c, isalnum_);
+		if (strcmp("true", ctx->yytext) == 0)
 		{	Token(TRUE);
 		}
-		if (strcmp("false", yytext) == 0)
+		if (strcmp("false", ctx->yytext) == 0)
 		{	Token(FALSE);
 		}
-		tl_yylval = tl_nn(PREDICATE,ZN,ZN);
-		tl_yylval->sym = tl_lookup(yytext);
+		ctx->tl_yylval = tl_nn(ctx, PREDICATE,ZN,ZN);
+		ctx->tl_yylval->sym = tl_lookup(ctx, ctx->yytext);
 		return PREDICATE;
 	}
 	if (c == '<')
-	{	c = tl_Getchar();
+	{	c = tl_Getchar(ctx);
 		if (c == '>')
 		{	Token(EVENTUALLY);
 		}
 		if (c != '-')
-		{	tl_UnGetchar();
-			tl_yyerror("expected '<>' or '<->'");
+		{	tl_UnGetchar(ctx);
+			tl_yyerror(ctx, "expected '<>' or '<->'");
 		}
-		c = tl_Getchar();
+		c = tl_Getchar(ctx);
 		if (c == '>')
 		{	Token(EQUIV);
 		}
-		tl_UnGetchar();
-		tl_yyerror("expected '<->'");
+		tl_UnGetchar(ctx);
+		tl_yyerror(ctx, "expected '<->'");
 	}
 	if (c == 'N')
-	{	c = tl_Getchar();
+	{	c = tl_Getchar(ctx);
 		if (c != 'O')
-		{	tl_UnGetchar();
-			tl_yyerror("expected 'NOT'");
+		{	tl_UnGetchar(ctx);
+			tl_yyerror(ctx, "expected 'NOT'");
 		}
-		c = tl_Getchar();
+		c = tl_Getchar(ctx);
 		if (c == 'T')
 		{	Token(NOT);
 		}
-		tl_UnGetchar();
-		tl_yyerror("expected 'NOT'");
+		tl_UnGetchar(ctx);
+		tl_yyerror(ctx, "expected 'NOT'");
 	}
 
 	switch (c) {
-	case '/' : c = follow('\\', AND, '/'); break;
-	case '\\': c = follow('/', OR, '\\'); break;
-	case '&' : c = follow('&', AND, '&'); break;
-	case '|' : c = follow('|', OR, '|'); break;
-	case '[' : c = follow(']', ALWAYS, '['); break;
-	case '-' : c = follow('>', IMPLIES, '-'); break;
+	case '/' : c = follow(ctx, '\\', AND, '/'); break;
+	case '\\': c = follow(ctx, '/', OR, '\\'); break;
+	case '&' : c = follow(ctx, '&', AND, '&'); break;
+	case '|' : c = follow(ctx, '|', OR, '|'); break;
+	case '[' : c = follow(ctx, ']', ALWAYS, '['); break;
+	case '-' : c = follow(ctx, '>', IMPLIES, '-'); break;
 	case '!' : c = NOT; break;
 	case 'U' : c = U_OPER; break;
 	case 'V' : c = V_OPER; break;
@@ -171,26 +166,26 @@ tl_lex(void)
 }
 
 Symbol *
-tl_lookup(char *s)
+tl_lookup(Ltl2baContext *ctx, char *s)
 {	Symbol *sp;
 	int h = hash(s);
 
-	for (sp = symtab[h]; sp; sp = sp->next)
+	for (sp = ctx->symtab[h]; sp; sp = sp->next)
 		if (strcmp(sp->name, s) == 0)
 			return sp;
 
-	sp = (Symbol *) tl_emalloc(sizeof(Symbol));
-	sp->name = (char *) tl_emalloc(strlen(s) + 1);
+	sp = (Symbol *) tl_emalloc(ctx, sizeof(Symbol));
+	sp->name = (char *) tl_emalloc(ctx, strlen(s) + 1);
 	strcpy(sp->name, s);
-	sp->next = symtab[h];
-	symtab[h] = sp;
+	sp->next = ctx->symtab[h];
+	ctx->symtab[h] = sp;
 
 	return sp;
 }
 
 Symbol *
-getsym(Symbol *s)
-{	Symbol *n = (Symbol *) tl_emalloc(sizeof(Symbol));
+getsym(Ltl2baContext *ctx, Symbol *s)
+{	Symbol *n = (Symbol *) tl_emalloc(ctx, sizeof(Symbol));
 
 	n->name = s->name;
 	return n;

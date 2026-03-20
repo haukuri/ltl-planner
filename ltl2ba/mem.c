@@ -33,42 +33,25 @@
 #include "ltl2ba.h"
 
 #if 1
-#define log(e, u, d)	event[e][(int) u] += (long) d;
+#define log(e, u, d)	ctx->mem_event[e][(int) u] += (long) d;
 #else
 #define log(e, u, d)
 #endif
 
-#define A_LARGE		80
 #define A_USER		0x55000000
 #define NOTOOBIG	32768
 
 #define POOL		0
 #define ALLOC		1
 #define FREE		2
-#define NREVENT		3
-
-extern	unsigned long All_Mem;
-extern	int tl_verbose;
-
-ATrans *atrans_list = (ATrans *)0;
-GTrans *gtrans_list = (GTrans *)0;
-BTrans *btrans_list = (BTrans *)0;
-
-int aallocs = 0, afrees = 0, apool = 0;
-int gallocs = 0, gfrees = 0, gpool = 0;
-int ballocs = 0, bfrees = 0, bpool = 0;
 
 union M {
 	long size;
 	union M *link;
 };
 
-static union M *freelist[A_LARGE];
-static long	req[A_LARGE];
-static long	event[NREVENT][A_LARGE];
-
 void *
-tl_emalloc(int U)
+tl_emalloc(Ltl2baContext *ctx, int U)
 {	union M *m;
   	long r, u;
 	void *rp;
@@ -77,26 +60,26 @@ tl_emalloc(int U)
 
 	if (u >= A_LARGE)
 	{	log(ALLOC, 0, 1);
-		if (tl_verbose)
+		if (ctx->tl_verbose)
 		printf("tl_spin: memalloc %ld bytes\n", u);
-		m = (union M *) emalloc((int) u*sizeof(union M));
-		All_Mem += (unsigned long) u*sizeof(union M);
+		m = (union M *) emalloc(ctx, (int) u*sizeof(union M));
+		ctx->All_Mem += (unsigned long) u*sizeof(union M);
 	} else
-	{	if (!freelist[u])
-		{	r = req[u] += req[u] ? req[u] : 1;
+	{	if (!ctx->freelist[u])
+		{	r = ctx->mem_req[u] += ctx->mem_req[u] ? ctx->mem_req[u] : 1;
 			if (r >= NOTOOBIG)
-				r = req[u] = NOTOOBIG;
+				r = ctx->mem_req[u] = NOTOOBIG;
 			log(POOL, u, r);
-			freelist[u] = (union M *)
-				emalloc((int) r*u*sizeof(union M));
-			All_Mem += (unsigned long) r*u*sizeof(union M);
-			m = freelist[u] + (r-2)*u;
-			for ( ; m >= freelist[u]; m -= u)
+			ctx->freelist[u] = (void *)
+				emalloc(ctx, (int) r*u*sizeof(union M));
+			ctx->All_Mem += (unsigned long) r*u*sizeof(union M);
+			m = (union M *)ctx->freelist[u] + (r-2)*u;
+			for ( ; m >= (union M *)ctx->freelist[u]; m -= u)
 				m->link = m+u;
 		}
 		log(ALLOC, u, 1);
-		m = freelist[u];
-		freelist[u] = m->link;
+		m = (union M *)ctx->freelist[u];
+		ctx->freelist[u] = (void *)(m->link);
 	}
 	m->size = (u|A_USER);
 
@@ -109,13 +92,13 @@ tl_emalloc(int U)
 }
 
 void
-tfree(void *v)
+tfree(Ltl2baContext *ctx, void *v)
 {	union M *m = (union M *) v;
 	long u;
 
 	--m;
 	if ((m->size&0xFF000000) != A_USER)
-		Fatal("releasing a free block");
+		Fatal(ctx, "releasing a free block");
 
 	u = (m->size &= 0xFFFFFF);
 	if (u >= A_LARGE)
@@ -123,123 +106,123 @@ tfree(void *v)
 		/* free(m); */
 	} else
 	{	log(FREE, u, 1);
-		m->link = freelist[u];
-		freelist[u] = m;
+		m->link = (union M *)ctx->freelist[u];
+		ctx->freelist[u] = (void *)m;
 	}
 }
 
-ATrans* emalloc_atrans() {
+ATrans* emalloc_atrans(Ltl2baContext *ctx) {
   ATrans *result;
-  if(!atrans_list) {
-    result = (ATrans *)tl_emalloc(sizeof(GTrans));
-    result->pos = new_set(1);
-    result->neg = new_set(1);
-    result->to  = new_set(0);
-    apool++;
+  if(!ctx->atrans_list) {
+    result = (ATrans *)tl_emalloc(ctx, sizeof(GTrans));
+    result->pos = new_set(ctx, 1);
+    result->neg = new_set(ctx, 1);
+    result->to  = new_set(ctx, 0);
+    ctx->apool++;
   }
   else {
-    result = atrans_list;
-    atrans_list = atrans_list->nxt;
+    result = ctx->atrans_list;
+    ctx->atrans_list = ctx->atrans_list->nxt;
     result->nxt = (ATrans *)0;
   }
-  aallocs++;
+  ctx->aallocs++;
   return result;
 }
 
-void free_atrans(ATrans *t, int rec) {
+void free_atrans(Ltl2baContext *ctx, ATrans *t, int rec) {
   if(!t) return;
-  if(rec) free_atrans(t->nxt, rec);
-  t->nxt = atrans_list;
-  atrans_list = t;
-  afrees++;
+  if(rec) free_atrans(ctx, t->nxt, rec);
+  t->nxt = ctx->atrans_list;
+  ctx->atrans_list = t;
+  ctx->afrees++;
 }
 
-void free_all_atrans() {
+void free_all_atrans(Ltl2baContext *ctx) {
   ATrans *t;
-  while(atrans_list) {
-    t = atrans_list;
-    atrans_list = t->nxt;
-    tfree(t->to);
-    tfree(t->pos);
-    tfree(t->neg);
-    tfree(t);
+  while(ctx->atrans_list) {
+    t = ctx->atrans_list;
+    ctx->atrans_list = t->nxt;
+    tfree(ctx, t->to);
+    tfree(ctx, t->pos);
+    tfree(ctx, t->neg);
+    tfree(ctx, t);
   }
 }
 
-GTrans* emalloc_gtrans() {
+GTrans* emalloc_gtrans(Ltl2baContext *ctx) {
   GTrans *result;
-  if(!gtrans_list) {
-    result = (GTrans *)tl_emalloc(sizeof(GTrans));
-    result->pos   = new_set(1);
-    result->neg   = new_set(1);
-    result->final = new_set(0);
-    gpool++;
+  if(!ctx->gtrans_list) {
+    result = (GTrans *)tl_emalloc(ctx, sizeof(GTrans));
+    result->pos   = new_set(ctx, 1);
+    result->neg   = new_set(ctx, 1);
+    result->final = new_set(ctx, 0);
+    ctx->gpool++;
   }
   else {
-    result = gtrans_list;
-    gtrans_list = gtrans_list->nxt;
+    result = ctx->gtrans_list;
+    ctx->gtrans_list = ctx->gtrans_list->nxt;
   }
-  gallocs++;
+  ctx->gallocs++;
   return result;
 }
 
-void free_gtrans(GTrans *t, GTrans *sentinel, int fly) {
-  gfrees++;
+void free_gtrans(Ltl2baContext *ctx, GTrans *t, GTrans *sentinel, int fly) {
+  ctx->gfrees++;
   if(sentinel && (t != sentinel)) {
-    free_gtrans(t->nxt, sentinel, fly);
+    free_gtrans(ctx, t->nxt, sentinel, fly);
     if(fly) t->to->incoming--;
   }
-  t->nxt = gtrans_list;
-  gtrans_list = t;
+  t->nxt = ctx->gtrans_list;
+  ctx->gtrans_list = t;
 }
 
-BTrans* emalloc_btrans() {
+BTrans* emalloc_btrans(Ltl2baContext *ctx) {
   BTrans *result;
-  if(!btrans_list) {
-    result = (BTrans *)tl_emalloc(sizeof(BTrans));
-    result->pos = new_set(1);
-    result->neg = new_set(1);
-    bpool++;
+  if(!ctx->btrans_list) {
+    result = (BTrans *)tl_emalloc(ctx, sizeof(BTrans));
+    result->pos = new_set(ctx, 1);
+    result->neg = new_set(ctx, 1);
+    ctx->bpool++;
   }
   else {
-    result = btrans_list;
-    btrans_list = btrans_list->nxt;
+    result = ctx->btrans_list;
+    ctx->btrans_list = ctx->btrans_list->nxt;
   }
-  ballocs++;
+  ctx->ballocs++;
   return result;
 }
 
-void free_btrans(BTrans *t, BTrans *sentinel, int fly) {
-  bfrees++;
+void free_btrans(Ltl2baContext *ctx, BTrans *t, BTrans *sentinel, int fly) {
+  ctx->bfrees++;
   if(sentinel && (t != sentinel)) {
-    free_btrans(t->nxt, sentinel, fly);
+    free_btrans(ctx, t->nxt, sentinel, fly);
     if(fly) t->to->incoming--;
   }
-  t->nxt = btrans_list;
-  btrans_list = t;
+  t->nxt = ctx->btrans_list;
+  ctx->btrans_list = t;
 }
 
 void
-a_stats(void)
+a_stats(Ltl2baContext *ctx)
 {	long	p, a, f;
 	int	i;
 
 	printf(" size\t  pool\tallocs\t frees\n");
 
 	for (i = 0; i < A_LARGE; i++)
-	{	p = event[POOL][i];
-		a = event[ALLOC][i];
-		f = event[FREE][i];
+	{	p = ctx->mem_event[POOL][i];
+		a = ctx->mem_event[ALLOC][i];
+		f = ctx->mem_event[FREE][i];
 
 		if(p|a|f)
 		printf("%5d\t%6ld\t%6ld\t%6ld\n",
 			i, p, a, f);
 	}
 
-	printf("atrans\t%6d\t%6d\t%6d\n", 
-	       apool, aallocs, afrees);
-	printf("gtrans\t%6d\t%6d\t%6d\n", 
-	       gpool, gallocs, gfrees);
-	printf("btrans\t%6d\t%6d\t%6d\n", 
-	       bpool, ballocs, bfrees);
+	printf("atrans\t%6d\t%6d\t%6d\n",
+	       ctx->apool, ctx->aallocs, ctx->afrees);
+	printf("gtrans\t%6d\t%6d\t%6d\n",
+	       ctx->gpool, ctx->gallocs, ctx->gfrees);
+	printf("btrans\t%6d\t%6d\t%6d\n",
+	       ctx->bpool, ctx->ballocs, ctx->bfrees);
 }

@@ -27,6 +27,30 @@ class Buchi(Graph):
 
     @classmethod
     def from_ltl(cls, formula: str) -> "Buchi":
-        promela_output = run_ltl2ba(formula)
-        promela_output = parse_promela(promela_output)
-        return cls.from_promela(promela_output)
+        try:
+            return cls.from_cffi(formula)
+        except Exception:
+            promela_output = run_ltl2ba(formula)
+            promela_output = parse_promela(promela_output)
+            return cls.from_promela(promela_output)
+
+    @classmethod
+    def from_cffi(cls, formula: str) -> "Buchi":
+        """Build a Buchi automaton from an LTL formula using the CFFI binding."""
+        from .ltl2ba_cffi import translate
+
+        result = translate(formula)
+        buchi = cls()
+
+        for state in result["states"]:
+            name = state["name"]
+            if state["is_initial"]:
+                buchi.initial.add(name)
+            if state["is_accept"]:
+                buchi.accept.add(name)
+
+        for edge in result["edges"]:
+            guard = parse_boolean_expression(edge["guard"])
+            buchi.add_edge(edge["src"], edge["dst"], guard=guard)
+
+        return buchi

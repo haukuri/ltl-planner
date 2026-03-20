@@ -2,7 +2,9 @@ import itertools
 from .buchi import Buchi
 from .ts import TransitionSystem
 
-type ProductNode = tuple[str, str]
+from typing import TypeAlias
+
+ProductNode: TypeAlias = tuple[str, str]
 
 
 class ProductGraph:
