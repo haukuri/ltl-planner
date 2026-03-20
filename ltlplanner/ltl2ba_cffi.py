@@ -1,6 +1,5 @@
 """CFFI-based binding to the ltl2ba shared library."""
 
-import os
 from pathlib import Path
 
 import cffi
